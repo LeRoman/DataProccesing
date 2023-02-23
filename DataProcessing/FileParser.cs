@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Runtime.CompilerServices;
 
 namespace DataProcessing
 {
@@ -13,7 +15,25 @@ namespace DataProcessing
     {
        const char quotationStart = '“';
        const char quotationEnd = '”';
-        public static void   Parse(FileInfo fileName)
+        public async void Start(Queue<FileInfo> fileQueue, Queue<List<string[]>> linesListQueue)
+        {
+            
+            await Task.Run(() =>
+            {
+                while (true)
+                {
+                    if (fileQueue.Count > 0)
+                    {
+                       Parse( fileQueue.First(), linesListQueue);
+                        Console.WriteLine( "Element "+ fileQueue.Dequeue().Name +"was dequeued"); ;
+                        Thread.Sleep(3000);
+                    }
+                    Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
+                    Thread.Sleep(3000);
+                }
+            });
+        }
+        public static void   Parse(FileInfo fileName, Queue<List<string[]>> linesListQueue)
         {
            
 
@@ -27,12 +47,14 @@ namespace DataProcessing
                 {
 
                     string[] rowElements = Split(line);
-                    if (ValidateRow(rowElements))
+                    if (Validator.IsValid(rowElements))
                     {
                         lines.Add(rowElements);
                     }
-                    else Console.WriteLine(line);
+                    else Console.WriteLine(line+"wrong line");
                 }
+                linesListQueue.Enqueue(lines);
+
 
             }
 
@@ -74,14 +96,5 @@ namespace DataProcessing
             return rowElements;
         }
 
-        static bool ValidateRow(string[] rowElements)
-        {
-
-            if ((!decimal.TryParse(rowElements[3], out decimal parsed)) ||
-                (!DateTime.TryParse(rowElements[4], out DateTime date)) ||
-                (!int.TryParse(rowElements[5], out int parsed1))) return false;
-            return true;
-
-        }
     }
 }

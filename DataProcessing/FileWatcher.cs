@@ -14,7 +14,7 @@ namespace DataProcessing
         DateTime folderLastModified;
         DateTime lastProcessTime;
 
-        public async Task  Start(Queue<FileInfo> queue, DirectoryInfo directory)
+        public async Task  Start(Queue<FileInfo> queue,  DirectoryInfo directory)
         {
             await Task.Run(() =>
             {

@@ -16,11 +16,13 @@ namespace DataProcessing
             var appSetting = config.GetSection("AppConfig").Get<AppConfig>();
             var inputPath = new DirectoryInfo(appSetting.inputDirectory);
 
-            var mainQueue = new Queue<FileInfo>();
-            var listener = new FileWatcher();
+            var fileQueue = new Queue<FileInfo>();
+            var parsedLinesQueue= new Queue<List<string[]>>();
+            var watcher = new FileWatcher();
+            var parser = new FileParser();
 
-            Task.Factory.StartNew(() => listener.Start(mainQueue, inputPath));
-
+            Task.Factory.StartNew(() => watcher.Start(fileQueue, inputPath));
+            Task.Factory.StartNew(() => parser.Start(fileQueue, parsedLinesQueue));
             while (true)
 
             {
