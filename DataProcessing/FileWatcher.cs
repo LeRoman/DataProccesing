@@ -14,53 +14,47 @@ namespace DataProcessing
         DateTime folderLastModified;
         DateTime lastProcessTime;
 
-        public async Task  Start(Queue<FileInfo> queue,  DirectoryInfo directory)
+        public async Task Start(Queue<FileInfo> queue, DirectoryInfo directory)
         {
-            await Task.Run(() =>
-            {
-                if (directory.Exists)
+            if (directory.Exists)
+                await Task.Run(() =>
                 {
-                    ParseFolder(queue, directory);
-                }
-            });
+                    while (true)
+                    {
+                        folderLastModified = Directory.GetLastWriteTime(directory.FullName);
+
+                        if (lastProcessTime < folderLastModified || lastProcessTime == default)
+                        {
+                            ParseFolder(queue, directory);
+                            lastProcessTime = DateTime.Now;
+                        }
+                        else
+                            Thread.Sleep(1000);
+                    }
+
+                });
         }
 
-        void ParseFolder (Queue<FileInfo> queue, DirectoryInfo directory)
+        void ParseFolder(Queue<FileInfo> queue, DirectoryInfo directory)
         {
-            var dir = Path.Combine(directory.FullName, "temp\\").ToString();
+            var dir = Path.Combine(directory.FullName, "inwork\\").ToString();
             Directory.CreateDirectory(dir);
 
             while (true)
             {
-                folderLastModified = Directory.GetLastWriteTime(directory.FullName);
-
-                if (lastProcessTime < folderLastModified|| lastProcessTime == default)
-                { 
                 var list = directory
                       .GetFiles()
                       .Where(x => x.Extension == ".txt" || x.Extension == ".csv")
                       .ToList();
 
-                 lastProcessTime= DateTime.Now;
-                  
-
-                    if (list.Count != 0)
-                    {
-                        foreach (var item in list)
-                        {
-                            queue.Enqueue(item);
-                            Console.WriteLine(DateTime.Now.ToShortTimeString()); 
-                            item.MoveTo(dir + DateTime.Now.ToString().Replace(':', '_') + item.Name); // to avoid file name conflicts
-                            Console.WriteLine(item.FullName);
-                        }
-                    }
-                }
-                
-                Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-                Thread.Sleep(3000);
-                foreach (var item in queue)
+                if (list.Count != 0)
                 {
-                    Console.Write("Files in queue:"+item.Name+"  ");
+                    foreach (var item in list)
+                    {
+                        queue.Enqueue(item);
+                        item.MoveTo(dir + DateTime.Now.ToShortTimeString().Replace(':', '_') + " " + item.Name); // to avoid file name conflicts
+                        Console.WriteLine(item.FullName + " added");
+                    }
                 }
 
             }

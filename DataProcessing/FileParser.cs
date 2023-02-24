@@ -24,12 +24,12 @@ namespace DataProcessing
                 {
                     if (fileQueue.Count > 0)
                     {
-                       Parse( fileQueue.First(), linesListQueue);
-                        Console.WriteLine( "Element "+ fileQueue.Dequeue().Name +"was dequeued"); ;
-                        Thread.Sleep(3000);
+                        Parse(fileQueue.First(), linesListQueue);
+                        Console.WriteLine("Element " + fileQueue.Dequeue().Name + "was dequeued"); ;
+
                     }
-                    Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-                   Thread.Sleep(3000);
+                    else
+                        Thread.Sleep(1000);
                 }
             });
         }
@@ -44,7 +44,6 @@ namespace DataProcessing
 
                 while ((line = reader.ReadLine()) != null)
                 {
-
                     string[] rowElements = Split(line);
                     if (Validator.IsValid(rowElements))
                     {
@@ -83,7 +82,6 @@ namespace DataProcessing
                         string element = line.Substring(firstComma, secondComma - firstComma);
                         rowElements[elementsAmount] = (element.StartsWith(',') ? element.Substring(1) : element).Trim();
                         elementsAmount++;
-
                 }
                    
             }

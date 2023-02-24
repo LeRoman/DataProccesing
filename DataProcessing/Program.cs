@@ -31,13 +31,13 @@ namespace DataProcessing
             Task.Factory.StartNew(() => trnsCreator.Start(parsedLinesQueue, transactionListQueue));
             Task.Factory.StartNew(() => fileWriter.Start( transactionListQueue, outputPath));
 
+            Console.ReadKey();
+            //    while (true)
 
-            while (true)
-
-            {
-                Console.WriteLine("fdgdfg");
-                Thread.Sleep(6000);
-            }
+            //    {
+            //        Console.WriteLine("fdgdfg");
+            //        Thread.Sleep(6000);
+            //    }
         }
     }
-}
+    }
