@@ -1,7 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Globalization;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
 
 namespace DataProcessing
 {
@@ -25,8 +24,8 @@ namespace DataProcessing
         [JsonProperty("payment")]
         public decimal Payment { get; set; }
 
-        
-        
+
+
         public DateTime Date { get; set; }
 
         [JsonProperty("date")]
@@ -45,7 +44,7 @@ namespace DataProcessing
             LastName = array[1];
             City = GetCity(array[2]);
             Address = GetAdress(array[2]);
-            Payment = Convert.ToDecimal(array[3],provider);
+            Payment = Convert.ToDecimal(array[3], provider);
             Date = ConvertStringToDate(array[4]);
             AccountNumber = Convert.ToInt64(array[5]);
             Service = array[6];
@@ -55,11 +54,11 @@ namespace DataProcessing
 
         private string GetAdress(string v)
         {
-            return v.Substring(v.IndexOf(',')+1).TrimEnd('”');
+            return v.Substring(v.IndexOf(',') + 1).TrimEnd('”');
         }
 
         private string GetCity(string v)
-        {   
+        {
             return v.Substring(0, v.IndexOf(',')).TrimStart('“');
         }
 

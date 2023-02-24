@@ -1,23 +1,24 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Linq;
 using System.Threading;
-using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 
 namespace DataProcessing
 {
     public class FileParser
     {
-       const char quotationStart = '“';
-       const char quotationEnd = '”';
+        const char quotationStart = '“';
+        const char quotationEnd = '”';
+        Logger logger;
+        public FileParser(DirectoryInfo dir)
+        {
+            logger = new Logger(dir);
+        }
         public async void Start(Queue<FileInfo> fileQueue, Queue<List<string[]>> linesListQueue)
         {
-            
+
             await Task.Run(() =>
             {
                 while (true)
@@ -33,12 +34,12 @@ namespace DataProcessing
                 }
             });
         }
-        public static void   Parse(FileInfo fileName, Queue<List<string[]>> linesListQueue)
+        public static void Parse(FileInfo fileName, Queue<List<string[]>> linesListQueue)
         {
-           
-           using (StreamReader reader = new StreamReader(fileName.FullName))
+
+            using (StreamReader reader = new StreamReader(fileName.FullName))
             {
-                
+
                 string? line;
                 List<string[]> lines = new List<string[]>();
 
@@ -49,7 +50,7 @@ namespace DataProcessing
                     {
                         lines.Add(rowElements);
                     }
-                    else Console.WriteLine(line+"wrong line");
+                    else Console.WriteLine(line + "wrong line");
                 }
                 linesListQueue.Enqueue(lines);
 
@@ -70,7 +71,7 @@ namespace DataProcessing
 
                 if (i == line.Length - 1)  // taking the last element in line
                 {
-                    rowElements[elementsAmount] = line.Substring(secondComma+1).Trim();
+                    rowElements[elementsAmount] = line.Substring(secondComma + 1).Trim();
                     break;
                 }
 
@@ -79,11 +80,11 @@ namespace DataProcessing
                 {
                     firstComma = secondComma;
                     secondComma = i;
-                        string element = line.Substring(firstComma, secondComma - firstComma);
-                        rowElements[elementsAmount] = (element.StartsWith(',') ? element.Substring(1) : element).Trim();
-                        elementsAmount++;
+                    string element = line.Substring(firstComma, secondComma - firstComma);
+                    rowElements[elementsAmount] = (element.StartsWith(',') ? element.Substring(1) : element).Trim();
+                    elementsAmount++;
                 }
-                   
+
             }
 
             return rowElements;

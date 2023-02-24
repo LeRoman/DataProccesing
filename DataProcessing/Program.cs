@@ -23,7 +23,7 @@ namespace DataProcessing
 
             var fileWatcher = new FileWatcher();
             var trnsCreator = new TransactionListCreator();
-            var fileParser = new FileParser();
+            var fileParser = new FileParser(outputPath);
             var fileWriter = new FileWriter();
 
             Task.Factory.StartNew(() => fileWatcher.Start(fileQueue, inputPath));
