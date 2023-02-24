@@ -1,49 +1,66 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.ComponentModel.DataAnnotations;
-using System.Configuration;
+using System.Globalization;
+using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace DataProcessing
 {
+    [JsonObject(MemberSerialization.OptIn)]
     class Transaction
     {
-        [Required]
-        [StringLength(10, MinimumLength = 3)]
+        [JsonIgnore]
         public string FirstName { get; set; }
-
-        [Required]
-        [StringLength(10, MinimumLength = 3)]
+        [JsonIgnore]
         public string LastName { get; set; }
 
-        [Required]
-        [StringLength(20, MinimumLength = 3)]
+        [JsonProperty("name")]
+        public string FullName { get; set; }
+
+        [JsonIgnore]
+        public string City { get; set; }
+
+        [JsonIgnore]
         public string Address { get; set; }
 
-        [Required]
+        [JsonProperty("payment")]
         public decimal Payment { get; set; }
 
-        [Required]
-        [RegularExpression(@"\d{4}-\d{2}-\d{2}")]
+        
+        
         public DateTime Date { get; set; }
 
-        [Required]
-        [RegularExpression(@"\d+\.\d")]
+        [JsonProperty("date")]
+        public string TimeForJson { get; set; }
+
+        [JsonProperty("account_number")]
         public long AccountNumber { get; set; }
 
-        [Required]
-        [StringLength(20, MinimumLength = 3)]
+        [JsonIgnore]
         public string Service { get; set; }
 
         public Transaction(string[] array)
         {
+            IFormatProvider provider = CultureInfo.InvariantCulture;
             FirstName = array[0];
             LastName = array[1];
-            Address = array[2];
-            Payment = Convert.ToDecimal(array[3]);
+            City = GetCity(array[2]);
+            Address = GetAdress(array[2]);
+            Payment = Convert.ToDecimal(array[3],provider);
             Date = ConvertStringToDate(array[4]);
             AccountNumber = Convert.ToInt64(array[5]);
             Service = array[6];
+            FullName = LastName + ' ' + FirstName;
+            TimeForJson = Date.ToString("d");
+        }
+
+        private string GetAdress(string v)
+        {
+            return v.Substring(v.IndexOf(',')+1).TrimEnd('”');
+        }
+
+        private string GetCity(string v)
+        {   
+            return v.Substring(0, v.IndexOf(',')).TrimStart('“');
         }
 
         private DateTime ConvertStringToDate(string v)

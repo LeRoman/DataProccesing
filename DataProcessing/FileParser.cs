@@ -29,14 +29,13 @@ namespace DataProcessing
                         Thread.Sleep(3000);
                     }
                     Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-                    Thread.Sleep(3000);
+                   Thread.Sleep(3000);
                 }
             });
         }
         public static void   Parse(FileInfo fileName, Queue<List<string[]>> linesListQueue)
         {
            
-
            using (StreamReader reader = new StreamReader(fileName.FullName))
             {
                 
@@ -55,10 +54,7 @@ namespace DataProcessing
                 }
                 linesListQueue.Enqueue(lines);
 
-
             }
-
-            
 
         }
         private static string[] Split(string line)
@@ -90,7 +86,6 @@ namespace DataProcessing
 
                 }
                    
-                
             }
 
             return rowElements;
