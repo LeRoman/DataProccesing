@@ -1,69 +1,61 @@
-﻿using System;
+﻿using Microsoft.Extensions.Hosting;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text;
 using System.Linq;
-using System.Collections;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DataProcessing
 {
-    class FileWatcher
+    class FileWatcher : BackgroundService
     {
         DateTime folderLastModified;
         DateTime lastProcessTime;
+        readonly DirectoryInfo directory;
+        readonly Queue<FileInfo> fileQueue;
 
-        public async Task  Start(Queue<FileInfo> queue, DirectoryInfo directory)
+        public FileWatcher(Queue<FileInfo> queue, DirectoryInfo directory)
         {
-            await Task.Run(() =>
-            {
-                if (directory.Exists)
-                {
-                    ParseFolder(queue, directory);
-                }
-            });
+            this.directory = directory;
+            this.fileQueue = queue;
         }
 
-        void ParseFolder (Queue<FileInfo> queue, DirectoryInfo directory)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var dir = Path.Combine(directory.FullName, "temp\\").ToString();
-            Directory.CreateDirectory(dir);
-
-            while (true)
+            while (!stoppingToken.IsCancellationRequested)
             {
+
                 folderLastModified = Directory.GetLastWriteTime(directory.FullName);
 
-                if (lastProcessTime < folderLastModified|| lastProcessTime == default)
-                { 
+                if (lastProcessTime < folderLastModified || lastProcessTime == default)
+                {
+                    ParseFolder(fileQueue, directory);
+                    lastProcessTime = DateTime.Now;
+                }
+                await Task.Delay(1000, stoppingToken);
+            }
+        }
+
+        void ParseFolder(Queue<FileInfo> queue, DirectoryInfo directory)
+        {
+            var dir = Path.Combine(directory.FullName, "Inwork\\").ToString();
+            Directory.CreateDirectory(dir);
+
                 var list = directory
                       .GetFiles()
                       .Where(x => x.Extension == ".txt" || x.Extension == ".csv")
                       .ToList();
 
-                 lastProcessTime= DateTime.Now;
-                  
-
-                    if (list.Count != 0)
+                if (list.Count != 0)
+                {
+                    foreach (var item in list)
                     {
-                        foreach (var item in list)
-                        {
-                            queue.Enqueue(item);
-                            Console.WriteLine(DateTime.Now.ToShortTimeString()); 
-                            item.MoveTo(dir + DateTime.Now.ToString().Replace(':', '_') + item.Name); // to avoid file name conflicts
-                            Console.WriteLine(item.FullName);
-                        }
+                        queue.Enqueue(item);
+                        item.MoveTo(dir + DateTime.Now.ToShortTimeString().Replace(':', '_') + " " + item.Name); // to avoid file name conflicts
+                        Console.WriteLine(item.FullName + " added");
                     }
                 }
-                
-                Console.WriteLine(Thread.CurrentThread.ManagedThreadId);
-                Thread.Sleep(3000);
-                foreach (var item in queue)
-                {
-                    Console.Write("Files in queue:"+item.Name+"  ");
-                }
-
-            }
         }
 
     }

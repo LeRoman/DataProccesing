@@ -1,42 +1,77 @@
-﻿using System;
+﻿using Microsoft.Extensions.Hosting;
+using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.IO;
-using System.Globalization;
-using System.Text.RegularExpressions;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
 
 namespace DataProcessing
 {
-    public class FileParser
+    public class FileParser : BackgroundService
     {
-       const char quotationStart = '“';
-       const char quotationEnd = '”';
-        public static void   Parse(FileInfo fileName)
-        {
-           
+        const char quotationStart = '“';
+        const char quotationEnd = '”';
+        readonly Queue<FileInfo> fileQueue;
+        readonly Queue<List<string[]>> linesListQueue;
+        readonly Logger log;
 
-           using (StreamReader reader = new StreamReader(fileName.FullName))
+        public FileParser(Queue<FileInfo> fileQueue, Queue<List<string[]>> linesListQueue, Logger log)
+        {
+            this.fileQueue = fileQueue;
+            this.linesListQueue = linesListQueue;
+            this.log = log;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
             {
-                
+                if (fileQueue.Count > 0)
+                {
+                    while (fileQueue.Count > 0)
+                    {
+                        Parse();
+                       // Console.WriteLine("Element " + fileQueue.First().Name + "was dequeued"); ;
+                    }
+                }
+                await Task.Delay(1000, stoppingToken);
+            }
+        }
+
+        public void Parse()
+        {
+            var current = fileQueue.Dequeue();
+
+            using (StreamReader reader = new StreamReader(current.FullName))
+            {
+                bool fileHaveErrors = false;
                 string? line;
                 List<string[]> lines = new List<string[]>();
 
                 while ((line = reader.ReadLine()) != null)
                 {
-
                     string[] rowElements = Split(line);
-                    if (ValidateRow(rowElements))
+                    if (Validator.IsValid(rowElements))
                     {
                         lines.Add(rowElements);
                     }
-                    else Console.WriteLine(line);
+                    else
+                    {
+                        log.AddFoundErrors();
+                        fileHaveErrors = true;
+                    }
+
+                    log.AddParsedLines();
                 }
 
-            }
+                linesListQueue.Enqueue(lines);
 
-            
+                if (fileHaveErrors) { log.AddInvalidFile(current.FullName); }
+                    
+                
+            }
 
         }
         private static string[] Split(string line)
@@ -53,7 +88,7 @@ namespace DataProcessing
 
                 if (i == line.Length - 1)  // taking the last element in line
                 {
-                    rowElements[elementsAmount] = line.Substring(secondComma+1).Trim();
+                    rowElements[elementsAmount] = line.Substring(secondComma + 1).Trim();
                     break;
                 }
 
@@ -62,26 +97,15 @@ namespace DataProcessing
                 {
                     firstComma = secondComma;
                     secondComma = i;
-                        string element = line.Substring(firstComma, secondComma - firstComma);
-                        rowElements[elementsAmount] = (element.StartsWith(',') ? element.Substring(1) : element).Trim();
-                        elementsAmount++;
-
+                    string element = line.Substring(firstComma, secondComma - firstComma);
+                    rowElements[elementsAmount] = (element.StartsWith(',') ? element.Substring(1) : element).Trim();
+                    elementsAmount++;
                 }
-                   
-                
+
             }
 
             return rowElements;
         }
 
-        static bool ValidateRow(string[] rowElements)
-        {
-
-            if ((!decimal.TryParse(rowElements[3], out decimal parsed)) ||
-                (!DateTime.TryParse(rowElements[4], out DateTime date)) ||
-                (!int.TryParse(rowElements[5], out int parsed1))) return false;
-            return true;
-
-        }
     }
 }
