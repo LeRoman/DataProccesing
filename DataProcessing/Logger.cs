@@ -6,7 +6,7 @@ using System.Text;
 namespace DataProcessing
 {
 
-    class Logger
+    public class Logger
     {
         static DateTime Date { get; set; }
         static int ParsedFiles { get; set; }
@@ -16,9 +16,9 @@ namespace DataProcessing
         string outputPath { get; set; }
         string outputFolderName { get; set; }
 
-        public Logger(DirectoryInfo dir)
+        public Logger(DirectoryInfo output)
         {
-            outputFolderName = dir.FullName;
+            outputFolderName = output.FullName;
             Date = DateTime.Now;
             outputFolderName = Date.ToString("d").Replace('.', '-');
         }
@@ -41,6 +41,7 @@ namespace DataProcessing
             ParsedFiles = default;
             ParsedLines = default;
             FoundErrors = default;
+            outputFolderName = Date.ToString("d").Replace('.', '-');
             InvalidFiles.Clear();
         }
 
@@ -50,20 +51,34 @@ namespace DataProcessing
             ParsedFiles++;
 
         }
+
         public void AddParsedLines()
         {
             CheckDate();
             ParsedLines++;
         }
+
         public void AddFoundErrors()
         {
             CheckDate();
             FoundErrors++;
         }
+
+        public void AddInvalidFile(string fileName)
+        {
+            CheckDate();
+            InvalidFiles.Add(fileName);
+        }
         void CheckDate()
         {
-            if (Date.ToShortDateString() != DateTime.Now.ToShortTimeString())
+            var date1 = Date.ToShortDateString();
+            var date2 = DateTime.Now.ToShortTimeString();
+
+            if (Date.ToShortDateString() != DateTime.Now.ToShortDateString())
+            {
                 LogToFile();
+                StatReset();
+            }
         }
 
     }

@@ -1,45 +1,52 @@
-﻿using System;
+﻿using Microsoft.Extensions.Hosting;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
+
 namespace DataProcessing
 {
-    public class FileParser
+    public class FileParser : BackgroundService
     {
         const char quotationStart = '“';
         const char quotationEnd = '”';
-        Logger logger;
-        public FileParser(DirectoryInfo dir)
-        {
-            logger = new Logger(dir);
-        }
-        public async void Start(Queue<FileInfo> fileQueue, Queue<List<string[]>> linesListQueue)
-        {
+        readonly Queue<FileInfo> fileQueue;
+        readonly Queue<List<string[]>> linesListQueue;
+        readonly Logger log;
 
-            await Task.Run(() =>
+        public FileParser(Queue<FileInfo> fileQueue, Queue<List<string[]>> linesListQueue, Logger log)
+        {
+            this.fileQueue = fileQueue;
+            this.linesListQueue = linesListQueue;
+            this.log = log;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
             {
-                while (true)
+                if (fileQueue.Count > 0)
                 {
-                    if (fileQueue.Count > 0)
+                    while (fileQueue.Count > 0)
                     {
-                        Parse(fileQueue.First(), linesListQueue);
-                        Console.WriteLine("Element " + fileQueue.Dequeue().Name + "was dequeued"); ;
-
+                        Parse();
+                       // Console.WriteLine("Element " + fileQueue.First().Name + "was dequeued"); ;
                     }
-                    else
-                        Thread.Sleep(1000);
                 }
-            });
+                await Task.Delay(1000, stoppingToken);
+            }
         }
-        public static void Parse(FileInfo fileName, Queue<List<string[]>> linesListQueue)
+
+        public void Parse()
         {
+            var current = fileQueue.Dequeue();
 
-            using (StreamReader reader = new StreamReader(fileName.FullName))
+            using (StreamReader reader = new StreamReader(current.FullName))
             {
-
+                bool fileHaveErrors = false;
                 string? line;
                 List<string[]> lines = new List<string[]>();
 
@@ -50,10 +57,20 @@ namespace DataProcessing
                     {
                         lines.Add(rowElements);
                     }
-                    else Console.WriteLine(line + "wrong line");
+                    else
+                    {
+                        log.AddFoundErrors();
+                        fileHaveErrors = true;
+                    }
+
+                    log.AddParsedLines();
                 }
+
                 linesListQueue.Enqueue(lines);
 
+                if (fileHaveErrors) { log.AddInvalidFile(current.FullName); }
+                    
+                
             }
 
         }

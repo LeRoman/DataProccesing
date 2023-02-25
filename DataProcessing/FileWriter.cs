@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Microsoft.Extensions.Hosting;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,30 +9,46 @@ using System.Threading.Tasks;
 
 namespace DataProcessing
 {
-    internal class FileWriter
+    internal class FileWriter : BackgroundService
     {
-        public async Task Start(Queue<List<Transaction>> transactionListQueue, DirectoryInfo outputDirectory)
+        readonly Queue<List<Transaction>> transactionListQueue;
+        readonly DirectoryInfo outputDirectory;
+
+        public FileWriter(Queue<List<Transaction>> transactionListQueue, DirectoryInfo outputDirectory)
         {
-            await Task.Run(() =>
+            this.transactionListQueue = transactionListQueue;
+            this.outputDirectory = outputDirectory;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
             {
                 if (outputDirectory.Exists)
                 {
-                    while (true)
+                    if (transactionListQueue.Count > 0)
                     {
-                        if (transactionListQueue.Count > 0)
+                        while (transactionListQueue.Count > 0)
                         {
-                            var list = transactionListQueue.Dequeue();
-                            WriteFile(list, outputDirectory);
+                            WriteFile();
                         }
-                        else Thread.Sleep(3000);
+
                     }
+                    else Thread.Sleep(3000);
+
                 }
-            });
+                await Task.Delay(1000, stoppingToken);
+            }
         }
 
-        private void WriteFile(List<Transaction> transactions, DirectoryInfo outputPath)
+        private void WriteFile()
         {
             string outputString = String.Empty;
+            var transactions = transactionListQueue.First();
+            var outputPath = Path.Combine(outputDirectory.ToString(), DateTime.Now.ToShortDateString().Replace('.', '-'));
+            Directory.CreateDirectory(outputPath);
+            var outputFileName = Path.Combine(outputPath, DateTime.Now.ToLongTimeString().Replace(':', '_') + "_output.json");
+
 
             var transactionCollection = transactions.GroupBy(x => x.City).Select(cities => new
             {
@@ -47,8 +64,8 @@ namespace DataProcessing
 
             outputString = JsonConvert.SerializeObject(transactionCollection, Formatting.Indented);
 
-            var outputFileName = Path.Combine(outputPath.ToString(), DateTime.Now.ToLongTimeString().Replace(':','_')+"_output.json");
             File.WriteAllText(outputFileName, outputString);
+            transactionListQueue.Dequeue();
         }
     }
 }

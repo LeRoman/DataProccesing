@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Extensions.Hosting;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -7,39 +8,40 @@ using System.Threading.Tasks;
 
 namespace DataProcessing
 {
-    class FileWatcher
+    class FileWatcher : BackgroundService
     {
         DateTime folderLastModified;
         DateTime lastProcessTime;
+        readonly DirectoryInfo directory;
+        readonly Queue<FileInfo> fileQueue;
 
-        public async Task Start(Queue<FileInfo> queue, DirectoryInfo directory)
+        public FileWatcher(Queue<FileInfo> queue, DirectoryInfo directory)
         {
-            if (directory.Exists)
-                await Task.Run(() =>
+            this.directory = directory;
+            this.fileQueue = queue;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+
+                folderLastModified = Directory.GetLastWriteTime(directory.FullName);
+
+                if (lastProcessTime < folderLastModified || lastProcessTime == default)
                 {
-                    while (true)
-                    {
-                        folderLastModified = Directory.GetLastWriteTime(directory.FullName);
-
-                        if (lastProcessTime < folderLastModified || lastProcessTime == default)
-                        {
-                            ParseFolder(queue, directory);
-                            lastProcessTime = DateTime.Now;
-                        }
-                        else
-                            Thread.Sleep(1000);
-                    }
-
-                });
+                    ParseFolder(fileQueue, directory);
+                    lastProcessTime = DateTime.Now;
+                }
+                await Task.Delay(1000, stoppingToken);
+            }
         }
 
         void ParseFolder(Queue<FileInfo> queue, DirectoryInfo directory)
         {
-            var dir = Path.Combine(directory.FullName, "inwork\\").ToString();
+            var dir = Path.Combine(directory.FullName, "Inwork\\").ToString();
             Directory.CreateDirectory(dir);
 
-            while (true)
-            {
                 var list = directory
                       .GetFiles()
                       .Where(x => x.Extension == ".txt" || x.Extension == ".csv")
@@ -54,8 +56,6 @@ namespace DataProcessing
                         Console.WriteLine(item.FullName + " added");
                     }
                 }
-
-            }
         }
 
     }
